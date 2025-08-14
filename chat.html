@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Enhanced Chat Widget - notsosillygoose</title>
+<style>
+  body {
+    font-family: 'Courier New', monospace;
+    background: #1e1e1e;
+    color: white;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Light mode styling */
+  body.light-mode {
+    background: #ffffff !important;
+    color: #222222 !important;
+  }
+  
+  /* Chat button bottom right */
+  #chatToggleBtn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #007BFF, #0056b3);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+  #chatToggleBtn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,123,255,0.6);
+  }
+  
+  /* Notification badge */
+  #notificationBadge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff4444;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  /* Chat container - Fixed positioning and dimensions */
+  #chatContainer {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 350px;
+    max-height: 500px;
+    background: linear-gradient(145deg, #111, #1a1a1a);
+    border: 2px solid #007BFF;
+    border-radius: 15px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,123,255,0.3);
+    z-index: 9998;
+    animation: slideUp 0.3s ease;
+    /* Ensure no extra spacing */
+    box-sizing: border-box;
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* Light mode chat container */
+  body.light-mode #chatContainer {
+    background: linear-gradient(145deg, #f8f9fa, #ffffff) !important;
+    border: 2px solid #007BFF !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  #chatContainer.open {
+    display: flex;
+  }
+
+  /* Chat header - Remove any potential spacing issues */
+  #chatHeader {
+    background: linear-gradient(135deg, #007BFF, #0056b3);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    /* Ensure no margin/spacing issues */
+    margin: 0;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    transition: border-bottom-color 0.3s ease;
+  }
+
+  body.light-mode #chatHeader {
+    border-bottom: 1px solid #e9ecef !important;
+  }
+  
+  #chatTitle {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 0;
+    padding: 0;
+    color: white;
+  }
+  
+  #onlineCount {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin: 0;
+    color: white;
+  }
+
+  /* Messages area - Fixed height calculations */
+  #chatMessages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    max-height: 300px;
+    scroll-behavior: smooth;
+    /* Remove any default margins */
+    margin: 0;
+    box-sizing: border-box;
+  }
+  
+  #chatMessages::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  #chatMessages::-webkit-scrollbar-track {
+    background: #222;
+    border-radius: 3px;
+    transition: background 0.3s ease;
+  }
+
+  body.light-mode #chatMessages::-webkit-scrollbar-track {
+    background: #f1f3f4 !important;
+  }
+  
+  #chatMessages::-webkit-scrollbar-thumb {
+    background: #007BFF;
+    border-radius: 3px;
+  }
+  
+  .message {
+    margin: 8px 0;
+    padding: 10px 12px;
+    background: #222;
+    border-radius: 12px;
+    max-width: 80%;
+    word-wrap: break-word;
+    position: relative;
+    animation: messageSlide 0.3s ease;
+    box-sizing: border-box;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  body.light-mode .message {
+    background: #f8f9fa !important;
+    color: #333333 !important;
+  }
+  
+  @keyframes messageSlide {
+    from { transform: translateX(-10px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  .message.me {
+    background: linear-gradient(135deg, #007BFF, #0056b3);
+    margin-left: auto;
+    color: white;
+  }
+
+  body.light-mode .message.me {
+    background: linear-gradient(135deg, #007BFF, #0056b3) !important;
+    color: white !important;
+  }
+  
+  .message.admin {
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    border: 1px solid #ff8c42;
+  }
+
+  body.light-mode .message.admin {
+    background: linear-gradient(135deg, #ff6b35, #f7931e) !important;
+    border: 1px solid #ff8c42 !important;
+    color: white !important;
+  }
+  
+  .message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 12px;
+    opacity: 0.8;
+  }
+  
+  .username {
+    font-weight: bold;
+    color: #007BFF;
+  }
+
+  body.light-mode .username {
+    color: #007BFF !important;
+  }
+  
+  .message.me .username {
+    color: rgba(255,255,255,0.9);
+  }
+
+  body.light-mode .message.me .username {
+    color: rgba(255,255,255,0.9) !important;
+  }
+  
+  .timestamp {
+    font-size: 10px;
+    opacity: 0.6;
+  }
+  
+  .message-status {
+    font-size: 10px;
+    margin-top: 4px;
+    text-align: right;
+    opacity: 0.6;
+  }
+  
+  .message-content {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  /* Typing indicator - Remove default margins */
+  #typingIndicator {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-style: italic;
+    color: #007BFF;
+    display: none;
+    animation: fadeInOut 2s infinite;
+    margin: 0;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+  
+  @keyframes fadeInOut {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* Input area - Ensure proper positioning */
+  #inputArea {
+    padding: 12px;
+    background: #222;
+    border-top: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* Remove margins and ensure proper sizing */
+    margin: 0;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    transition: background 0.3s ease, border-top-color 0.3s ease;
+  }
+
+  body.light-mode #inputArea {
+    background: #f8f9fa !important;
+    border-top: 1px solid #e9ecef !important;
+  }
+  
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+  
+  #messageInput {
+    flex: 1;
+    padding: 10px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    border-radius: 20px;
+    border: 1px solid #444;
+    background: #333;
+    color: white;
+    resize: none;
+    max-height: 60px;
+    box-sizing: border-box;
+    margin: 0;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  body.light-mode #messageInput {
+    background: #ffffff !important;
+    color: #333333 !important;
+    border: 1px solid #ced4da !important;
+  }
+  
+  #messageInput:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.2);
+  }
+
+  body.light-mode #messageInput:focus {
+    border-color: #007BFF !important;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.2) !important;
+  }
+  
+  #messageInput:disabled {
+    background: #666;
+  }
+
+  body.light-mode #messageInput:disabled {
+    background: #e9ecef !important;
+    color: #6c757d !important;
+  }
+  
+  #fileInput {
+    display: none;
+  }
+  
+  .input-btn {
+    background: #007BFF;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-sizing: border-box;
+    margin: 0;
+  }
+  
+  .input-btn:hover:enabled {
+    background: #0056b3;
+    transform: scale(1.05);
+  }
+  
+  .input-btn:disabled {
+    background: #444;
+    cursor: not-allowed;
+  }
+
+  body.light-mode .input-btn:disabled {
+    background: #6c757d !important;
+  }
+  
+  #sendBtn {
+    border-radius: 20px;
+    padding: 10px 16px;
+    width: auto;
+    font-weight: bold;
+  }
+
+  /* File preview */
+  .file-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: #333;
+    border-radius: 8px;
+    font-size: 12px;
+    margin: 0;
+    box-sizing: border-box;
+    transition: background 0.3s ease;
+  }
+
+  body.light-mode .file-preview {
+    background: #e9ecef !important;
+    color: #333333 !important;
+  }
+  
+  .file-preview img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+
+  /* Username modal */
+  #usernameModal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(5px);
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: background 0.3s ease;
+  }
+
+  body.light-mode #usernameModal {
+    background: rgba(0,0,0,0.5) !important;
+  }
+  
+  #usernameModalContent {
+    background: linear-gradient(145deg, #222, #2a2a2a);
+    padding: 30px;
+    border-radius: 15px;
+    width: 320px;
+    max-width: 100%;
+    text-align: center;
+    border: 1px solid #007BFF;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-sizing: border-box;
+    margin: 0;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  body.light-mode #usernameModalContent {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa) !important;
+    color: #333333 !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+  }
+  
+  #usernameModalContent h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #007BFF;
+  }
+  
+  #usernameInput {
+    width: 100%;
+    padding: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    margin-bottom: 8px;
+    background: #333;
+    color: white;
+    box-sizing: border-box;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  body.light-mode #usernameInput {
+    background: #ffffff !important;
+    color: #333333 !important;
+    border: 1px solid #ced4da !important;
+  }
+
+  /* Username validation message */
+  #usernameValidation {
+    font-size: 11px;
+    color: #ff6b6b;
+    margin-bottom: 12px;
+    min-height: 14px;
+    text-align: left;
+    line-height: 1.3;
+  }
+
+  body.light-mode #usernameValidation {
+    color: #dc3545 !important;
+  }
+
+  #usernameValidation.success {
+    color: #51cf66;
+  }
+
+  body.light-mode #usernameValidation.success {
+    color: #28a745 !important;
+  }
+  
+  #usernameInput:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.2);
+  }
+  
+  #setUsernameBtn {
+    background: linear-gradient(135deg, #007BFF, #0056b3);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+    transition: transform 0.2s;
+    box-sizing: border-box;
+    margin: 0;
+  }
+  
+  #setUsernameBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+  }
+
+  /* Admin panel */
+  .admin-panel {
+    display: none;
+    padding: 8px;
+    background: #333;
+    border-top: 1px solid #444;
+    gap: 8px;
+    margin: 0;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    transition: background 0.3s ease, border-top-color 0.3s ease;
+  }
+
+  body.light-mode .admin-panel {
+    background: #e9ecef !important;
+    border-top: 1px solid #dee2e6 !important;
+  }
+  
+  .admin-panel.show {
+    display: flex;
+  }
+  
+  .admin-btn {
+    background: #ff6b35;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    margin: 0;
+    box-sizing: border-box;
+  }
+
+  /* Mobile responsiveness */
+  @media (max-width: 480px) {
+    #chatContainer {
+      width: calc(100vw - 40px);
+      right: 20px;
+      left: 20px;
+      bottom: 80px;
+    }
+    
+    #chatToggleBtn {
+      right: 15px;
+      bottom: 15px;
+    }
+    
+    #usernameModalContent {
+      width: calc(100vw - 60px);
+      margin: 0;
+    }
+  }
+
+  /* Emoji picker */
+  .emoji-picker {
+    display: none;
+    position: absolute;
+    bottom: 50px;
+    right: 0;
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 8px;
+    max-width: 200px;
+    max-height: 120px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-sizing: border-box;
+    margin: 0;
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+
+  body.light-mode .emoji-picker {
+    background: #ffffff !important;
+    border: 1px solid #ced4da !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+  }
+  
+  .emoji-picker.show {
+    display: block;
+  }
+  
+  .emoji {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 2px;
+    transition: background 0.2s;
+  }
+  
+  .emoji:hover {
+    background: #333;
+  }
+
+  body.light-mode .emoji:hover {
+    background: #f8f9fa !important;
+  }
+
+  /* Reset any potential conflicts */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Additional fixes for potential conflicts */
+  #chatContainer * {
+    margin: 0 !important;
+  }
+
+  #chatContainer .message {
+    margin: 8px 0 !important;
+  }
+
+  #chatContainer .message-header {
+    margin-bottom: 4px !important;
+  }
+
+  #chatContainer .message-status {
+    margin-top: 4px !important;
+  }
+
+  #chatContainer #usernameModalContent h2 {
+    margin-top: 0 !important;
+    margin-bottom: 20px !important;
+  }
+
+  #chatContainer #usernameInput {
+    margin-bottom: 16px !important;
+  }
+
+  #chatContainer .emoji {
+    margin: 2px !important;
+  }
+</style>
+</head>
+<body>
+
+<!-- Chat toggle button -->
+<button id="chatToggleBtn" aria-label="Toggle chat">
+  💬
+  <div id="notificationBadge">0</div>
+</button>
+
+<!-- Chat container -->
+<div id="chatContainer" aria-live="polite" aria-atomic="false" role="region" aria-label="Chat messages">
+  <div id="chatHeader">
+    <div id="chatTitle">Live Chat</div>
+    <div id="onlineCount">👤 0</div>
+  </div>
+  
+  <div id="chatMessages" tabindex="0"></div>
+  <div id="typingIndicator">Someone is typing...</div>
+  
+  <div class="admin-panel" id="adminPanel">
+    <button class="admin-btn" id="clearChatBtn">Clear Chat</button>
+    <button class="admin-btn" id="exportChatBtn">Export</button>
+  </div>
+  
+  <div id="inputArea">
+    <div class="input-row">
+      <button class="input-btn" id="fileBtn" title="Attach file">📎</button>
+      <input type="file" id="fileInput" accept="image/*,.pdf,.txt,.doc,.docx" />
+      <textarea id="messageInput" placeholder="Type message..." maxlength="500" disabled autocomplete="off" rows="1"></textarea>
+      <button class="input-btn" id="emojiBtn" title="Emojis">😀</button>
+      <button id="sendBtn" class="input-btn" disabled title="Send message">➤</button>
+    </div>
+    
+    <div class="emoji-picker" id="emojiPicker">
+      <span class="emoji">😀</span><span class="emoji">😂</span><span class="emoji">😍</span><span class="emoji">🥰</span>
+      <span class="emoji">😊</span><span class="emoji">😎</span><span class="emoji">🤔</span><span class="emoji">😮</span>
+      <span class="emoji">😢</span><span class="emoji">😭</span><span class="emoji">😡</span><span class="emoji">🙄</span>
+      <span class="emoji">👍</span><span class="emoji">👎</span><span class="emoji">❤️</span><span class="emoji">🔥</span>
+      <span class="emoji">✨</span><span class="emoji">🎉</span><span class="emoji">💯</span><span class="emoji">🚀</span>
+    </div>
+  </div>
+</div>
+
+<!-- Username modal -->
+<div id="usernameModal" role="dialog" aria-modal="true" aria-labelledby="usernameLabel">
+  <div id="usernameModalContent">
+    <h2 id="usernameLabel">Choose Your Username</h2>
+    <input type="text" id="usernameInput" maxlength="15" autocomplete="off" placeholder="Enter username (3-15 chars)" />
+    <div id="usernameValidation"></div>
+    <button id="setUsernameBtn">Start Chatting</button>
+    <div style="font-size: 11px; opacity: 0.8; margin-top: 12px; text-align: left;">
+      <strong>Rules:</strong><br>
+      • 3-15 characters only<br>
+      • Letters, numbers, _ and - allowed<br>
+      • Cannot start/end with _ or -<br>
+      • No inappropriate language<br>
+      • Must be unique
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-storage-compat.min.js"></script>
+
+<script>
+  // Listen for theme changes from parent window
+  window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'themeChange') {
+      if (event.data.theme === 'light') {
+        document.body.classList.add('light-mode');
+      } else {
+        document.body.classList.remove('light-mode');
+      }
+    }
+  });
+
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyD40mLak7zCBSiD_AWadY_peZoWNp33AJ4",
+    authDomain: "notsosillygoose-chat.firebaseapp.com",
+    databaseURL: "https://notsosillygoose-chat-default-rtdb.firebaseio.com",
+    projectId: "notsosillygoose-chat",
+    storageBucket: "notsosillygoose-chat.firebasestorage.app",
+    messagingSenderId: "370172401828",
+    appId: "1:370172401828:web:1de5f6965c531d06806e31"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const storage = firebase.storage();
+
+  // DOM elements
+  const chatToggleBtn = document.getElementById('chatToggleBtn');
+  const chatContainer = document.getElementById('chatContainer');
+  const chatMessages = document.getElementById('chatMessages');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const fileBtn = document.getElementById('fileBtn');
+  const fileInput = document.getElementById('fileInput');
+  const emojiBtn = document.getElementById('emojiBtn');
+  const emojiPicker = document.getElementById('emojiPicker');
+  const typingIndicator = document.getElementById('typingIndicator');
+  const onlineCount = document.getElementById('onlineCount');
+  const notificationBadge = document.getElementById('notificationBadge');
+  const adminPanel = document.getElementById('adminPanel');
+  const clearChatBtn = document.getElementById('clearChatBtn');
+  const exportChatBtn = document.getElementById('exportChatBtn');
+
+  const usernameModal = document.getElementById('usernameModal');
+  const usernameInput = document.getElementById('usernameInput');
+  const setUsernameBtn = document.getElementById('setUsernameBtn');
+
+  // State
+  let username = null;
+  let userId = Math.random().toString(36).substr(2, 9);
+  let isTyping = false;
+  let typingTimeout;
+  let chatOpen = false;
+  let unreadCount = 0;
+  let lastMessageTime = 0;
+  const adminUsers = ['admin', 'moderator']; // Add admin usernames here
+  let existingUsernames = new Set(); // Track existing usernames
+
+  // Enhanced profanity filter - comprehensive list of inappropriate words
+  const profanityList = [
+    // Basic profanity
+    'fuck', 'fucking', 'fucked', 'fucker', 'fck', 'f*ck', 'f**k',
+    'shit', 'shitting', 'sht', 's*it', 's**t', 'shyt',
+    'damn', 'damned', 'dammit', 'd*mn', 'dmn',
+    'bitch', 'bitching', 'btch', 'b*tch', 'b**ch',
+    'ass', 'asses', 'asshole', 'a*s', 'a**', '@ss',
+    'hell', 'heck', 'h*ll',
+    'crap', 'crappy', 'cr*p',
+    'piss', 'pissed', 'pissing', 'p*ss',
+    
+    // Sexual content
+    'cock', 'dick', 'penis', 'pussy', 'vagina', 'c*ck', 'd*ck', 'p*ssy',
+    'tit', 'tits', 'boob', 'boobs', 'breast', 't*ts',
+    'sex', 'sexual', 'sexy', 'nude', 'naked', 'porn', 'pornography',
+    'masturbate', 'orgasm', 'cum', 'cumming',
+    
+    // Hate speech and slurs
+    'nazi', 'hitler', 'fascist', 'racist', 'bigot',
+    'retard', 'retarded', 'r*tard', 'moron', 'idiot', 'stupid',
+    'faggot', 'fag', 'f*ggot', 'f*g', 'gay' /* context matters for this one */,
+    'lesbian', 'homo', 'homosexual', 'queer', 'tr*nny', 'tranny',
+    'nigger', 'n*gger', 'n***er', 'negro', 'n*gga', 'nigga',
+    
+    // Violence and harmful content
+    'kill', 'killing', 'murder', 'murderer', 'die', 'death', 'dead',
+    'suicide', 'suicidal', 'hang', 'hanging', 'shoot', 'shooting',
+    'rape', 'raping', 'rapist', 'molest', 'abuse',
+    
+    // Drugs
+    'drug', 'drugs', 'weed', 'marijuana', 'cannabis', 'cocaine', 'coke',
+    'heroin', 'meth', 'methamphetamine', 'crack', 'ecstasy', 'lsd',
+    'high', 'stoned', 'drunk', 'alcohol', 'beer', 'wine',
+    
+    // Additional inappropriate terms
+    'slut', 'whore', 'prostitute', 'hooker', 'escort',
+    'bastard', 'b*stard', 'son of a bitch', 'sonofabitch',
+    'motherfucker', 'mofo', 'm*therf*cker',
+    'prick', 'pr*ck', 'douche', 'douchebag',
+    
+    // Internet slang variations
+    'wtf', 'stfu', 'gtfo', 'fml', 'omfg',
+    'bullsh*t', 'bullshit', 'bs', 'horsesh*t',
+    
+    // Numbers and symbols often used as substitutes
+    '69', '420', '666'
+  ];
+
+  // Reserved usernames that cannot be used
+  const reservedNames = [
+    'admin', 'moderator', 'mod', 'administrator', 'root', 'system', 'user', 'guest',
+    'owner', 'staff', 'support', 'help', 'bot', 'null', 'undefined', 'anonymous',
+    'everyone', 'here', 'channel', 'server', 'siveshiam', 'iamsivesh', 'shivesh',
+    'shiv', 'sivesh', 'twitch', 'youtube', 'facebook', 'iamshivesh', 'instagram'
+  ];
+
+  // Function to filter profanity from messages and replace with heart symbols
+  function filterProfanity(text) {
+    if (!text || typeof text !== 'string') return text;
+    
+    let filteredText = text;
+    
+    // Create a more comprehensive regex pattern for each profane word
+    profanityList.forEach(word => {
+      // Create multiple patterns to catch variations
+      const patterns = [
+        // Exact word match (case insensitive)
+        new RegExp(`\\b${escapeRegex(word)}\\b`, 'gi'),
+        // With asterisks or other symbols
+        new RegExp(`\\b${escapeRegex(word).replace(/\*/g, '[*@#$%&!]+')}\\b`, 'gi'),
+        // With numbers (l33t speak)
+        new RegExp(`\\b${escapeRegex(word)
+          .replace(/o/g, '[o0]')
+          .replace(/i/g, '[i1!]')
+          .replace(/e/g, '[e3]')
+          .replace(/a/g, '[a4@]')
+          .replace(/s/g, '[s5$]')
+          .replace(/t/g, '[t7]')
+          .replace(/l/g, '[l1]')
+        }\\b`, 'gi'),
+        // Spaced out letters
+        new RegExp(`\\b${word.split('').join('\\s*')}\\b`, 'gi'),
+        // With extra characters in between
+        new RegExp(`\\b${word.split('').join('[^a-zA-Z0-9]*')}\\b`, 'gi')
+      ];
+      
+      patterns.forEach(pattern => {
+        filteredText = filteredText.replace(pattern, generateHeartReplacement);
+      });
+    });
+    
+    return filteredText;
+  }
+
+  // Helper function to escape regex special characters
+  function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  // Generate heart symbol replacement based on word length
+  function generateHeartReplacement(match) {
+    const length = match.replace(/[^a-zA-Z]/g, '').length; // Count only letters
+    if (length <= 2) return '❤️';
+    if (length <= 4) return '❤️❤️';
+    if (length <= 6) return '❤️❤️❤️';
+    return '❤️❤️❤️❤️'; // For very long words
+  }
+
+  function validateUsername(username) {
+    const errors = [];
+    
+    // Check length
+    if (username.length < 3) {
+      errors.push('Username must be at least 3 characters long');
+    }
+    if (username.length > 15) {
+      errors.push('Username must be 15 characters or less');
+    }
+    
+    // Check allowed characters (alphanumeric, underscores, hyphens only)
+    const allowedCharsRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!allowedCharsRegex.test(username)) {
+      errors.push('Username can only contain letters, numbers, underscores (_), and hyphens (-)');
+    }
+    
+    // Cannot start or end with underscore or hyphen
+    if (username.startsWith('_') || username.startsWith('-') || 
+        username.endsWith('_') || username.endsWith('-')) {
+      errors.push('Username cannot start or end with underscore or hyphen');
+    }
+    
+    // Cannot have consecutive underscores or hyphens
+    if (username.includes('__') || username.includes('--') || username.includes('_-') || username.includes('-_')) {
+      errors.push('Username cannot have consecutive special characters');
+    }
+    
+    // Cannot be only numbers
+    if (/^\d+$/.test(username)) {
+      errors.push('Username cannot be only numbers');
+    }
+    
+    // Check for profanity in username
+    const lowerUsername = username.toLowerCase();
+    for (const word of profanityList) {
+      if (lowerUsername.includes(word.toLowerCase())) {
+        errors.push('Username contains inappropriate language');
+        break;
+      }
+    }
+    
+    // Check reserved names
+    if (reservedNames.includes(lowerUsername)) {
+      errors.push('This username is reserved and cannot be used');
+    }
+    
+    // Check for common substitutions (l33t speak) in username
+    const leetSubstitutions = lowerUsername
+      .replace(/0/g, 'o')
+      .replace(/1/g, 'i')
+      .replace(/3/g, 'e')
+      .replace(/4/g, 'a')
+      .replace(/5/g, 's')
+      .replace(/7/g, 't')
+      .replace(/@/g, 'a');
+    
+    for (const word of profanityList) {
+      if (leetSubstitutions.includes(word.toLowerCase())) {
+        errors.push('Username contains inappropriate language');
+        break;
+      }
+    }
+    
+    return errors;
+  }
+
+  function checkUsernameAvailability(username, callback) {
+    // Check against existing usernames in real-time
+    db.ref('usernames').once('value', (snapshot) => {
+      const usernames = snapshot.val() || {};
+      const isAvailable = !Object.values(usernames).some(user => 
+        user.username.toLowerCase() === username.toLowerCase()
+      );
+      callback(isAvailable);
+    });
+  }
+
+  function reserveUsername(username) {
+    // Reserve the username in the database
+    db.ref(`usernames/${userId}`).set({
+      username: username,
+      timestamp: Date.now()
+    });
+    
+    // Remove reservation on disconnect
+    db.ref(`usernames/${userId}`).onDisconnect().remove();
+  }
+
+  // Initialize
+  function init() {
+    const savedUsername = localStorage.getItem('chatUsername');
+    if (savedUsername && savedUsername.length >= 3 && savedUsername.length <= 15) {
+      // Validate saved username and check if still available
+      const validationErrors = validateUsername(savedUsername);
+      if (validationErrors.length === 0) {
+        checkUsernameAvailability(savedUsername, (isAvailable) => {
+          if (isAvailable) {
+            username = savedUsername;
+            reserveUsername(username);
+            hideUsernameModal();
+            enableChat();
+            setUserOnline();
+          } else {
+            // Saved username is no longer available
+            localStorage.removeItem('chatUsername');
+            showUsernameModal();
+          }
+        });
+      } else {
+        // Saved username no longer meets validation criteria
+        localStorage.removeItem('chatUsername');
+        showUsernameModal();
+      }
+    } else {
+      showUsernameModal();
+    }
+    
+    // Auto-resize textarea
+    messageInput.addEventListener('input', autoResizeTextarea);
+    
+    // Setup all event listeners
+    setupEventListeners();
+    
+    // Load message history
+    loadMessageHistory();
+    
+    // Setup presence system
+    setupPresenceSystem();
+    
+    // Monitor username availability in real-time
+    monitorUsernames();
+  }
+
+  function monitorUsernames() {
+    // Keep track of existing usernames for real-time validation
+    db.ref('usernames').on('value', (snapshot) => {
+      const usernames = snapshot.val() || {};
+      existingUsernames = new Set(
+        Object.values(usernames).map(user => user.username.toLowerCase())
+      );
+    });
+  }
+
+  function setupEventListeners() {
+    // Chat toggle
+    chatToggleBtn.addEventListener('click', toggleChat);
+    
+    // Send message
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', handleMessageInput);
+    
+    // File handling
+    fileBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileUpload);
+    
+    // Emoji picker
+    emojiBtn.addEventListener('click', toggleEmojiPicker);
+    document.querySelectorAll('.emoji').forEach(emoji => {
+      emoji.addEventListener('click', () => {
+        messageInput.value += emoji.textContent;
+        autoResizeTextarea();
+        emojiPicker.classList.remove('show');
+      });
+    });
+    
+    // Username setup
+    setUsernameBtn.addEventListener('click', setUsername);
+    usernameInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') setUsername();
+    });
+    
+    // Real-time username validation
+    usernameInput.addEventListener('input', validateUsernameRealTime);
+    
+    // Admin functions
+    clearChatBtn.addEventListener('click', clearChat);
+    exportChatBtn.addEventListener('click', exportChat);
+    
+    // Typing indicator
+    messageInput.addEventListener('input', handleTyping);
+    
+    // Close emoji picker on outside click
+    document.addEventListener('click', (e) => {
+      if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) {
+        emojiPicker.classList.remove('show');
+      }
+    });
+  }
+
+  function validateUsernameRealTime() {
+    const val = usernameInput.value.trim();
+    const validationDiv = document.getElementById('usernameValidation');
+    
+    if (!val) {
+      validationDiv.textContent = '';
+      validationDiv.className = '';
+      return;
+    }
+    
+    const errors = validateUsername(val);
+    if (errors.length > 0) {
+      validationDiv.textContent = errors[0]; // Show first error
+      validationDiv.className = '';
+    } else if (existingUsernames.has(val.toLowerCase())) {
+      validationDiv.textContent = 'Username already taken';
+      validationDiv.className = '';
+    } else {
+      validationDiv.textContent = 'Username available ✓';
+      validationDiv.className = 'success';
+    }
+  }
+
+  function showUsernameModal() {
+    usernameModal.style.display = 'flex';
+    usernameInput.focus();
+    messageInput.disabled = true;
+    sendBtn.disabled = true;
+  }
+
+  function hideUsernameModal() {
+    usernameModal.style.display = 'none';
+  }
+
+  function setUsername() {
+    const val = usernameInput.value.trim();
+    
+    // Validate username format
+    const validationErrors = validateUsername(val);
+    if (validationErrors.length > 0) {
+      alert('Username Error:\n• ' + validationErrors.join('\n• '));
+      usernameInput.focus();
+      return;
+    }
+    
+    // Show loading state
+    setUsernameBtn.disabled = true;
+    setUsernameBtn.textContent = 'Checking...';
+    usernameInput.disabled = true;
+    
+    // Check availability
+    checkUsernameAvailability(val, (isAvailable) => {
+      if (!isAvailable) {
+        alert('This username is already taken. Please choose another one.');
+        setUsernameBtn.disabled = false;
+        setUsernameBtn.textContent = 'Start Chatting';
+        usernameInput.disabled = false;
+        usernameInput.focus();
+        return;
+      }
+      
+      // Username is valid and available
+      username = val;
+      localStorage.setItem('chatUsername', username);
+      reserveUsername(username);
+      hideUsernameModal();
+      enableChat();
+      setUserOnline();
+      
+      // Show admin panel for admin users
+      if (adminUsers.includes(username.toLowerCase())) {
+        adminPanel.classList.add('show');
+      }
+      
+      // Reset button state
+      setUsernameBtn.disabled = false;
+      setUsernameBtn.textContent = 'Start Chatting';
+      usernameInput.disabled = false;
+    });
+  }
+
+  function enableChat() {
+    messageInput.disabled = false;
+    sendBtn.disabled = false;
+    if (chatOpen) messageInput.focus();
+  }
+
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    if (chatOpen) {
+      chatContainer.classList.add('open');
+      messageInput.focus();
+      unreadCount = 0;
+      updateNotificationBadge();
+    } else {
+      chatContainer.classList.remove('open');
+    }
+  }
+
+  function autoResizeTextarea() {
+    messageInput.style.height = 'auto';
+    messageInput.style.height = Math.min(messageInput.scrollHeight, 60) + 'px';
+  }
+
+  function handleMessageInput(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function toggleEmojiPicker() {
+    emojiPicker.classList.toggle('show');
+  }
+
+  function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function createMessage(data, isOwn = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isOwn ? 'me' : ''}`;
+    
+    if (adminUsers.includes(data.username.toLowerCase())) {
+      messageDiv.classList.add('admin');
+    }
+    
+    const messageHeader = document.createElement('div');
+    messageHeader.className = 'message-header';
+    
+    const usernameSpan = document.createElement('span');
+    usernameSpan.className = 'username';
+    usernameSpan.textContent = data.username;
+    
+    const timestampSpan = document.createElement('span');
+    timestampSpan.className = 'timestamp';
+    timestampSpan.textContent = formatTime(data.timestamp);
+    
+    messageHeader.appendChild(usernameSpan);
+    messageHeader.appendChild(timestampSpan);
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    if (data.type === 'file') {
+      if (data.fileType.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = data.fileUrl;
+        img.style.maxWidth = '200px';
+        img.style.borderRadius = '8px';
+        img.style.cursor = 'pointer';
+        img.onclick = () => window.open(data.fileUrl, '_blank');
+        messageContent.appendChild(img);
+      } else {
+        const fileLink = document.createElement('a');
+        fileLink.href = data.fileUrl;
+        fileLink.textContent = `📎 ${data.fileName}`;
+        fileLink.target = '_blank';
+        fileLink.style.color = isOwn ? '#fff' : '#007BFF';
+        messageContent.appendChild(fileLink);
+      }
+    } else {
+      // Apply profanity filter to message content when displaying
+      const filteredMessage = filterProfanity(data.message || '');
+      messageContent.textContent = filteredMessage;
+    }
+    
+    messageDiv.appendChild(messageHeader);
+    messageDiv.appendChild(messageContent);
+    
+    if (isOwn) {
+      const statusDiv = document.createElement('div');
+      statusDiv.className = 'message-status';
+      statusDiv.textContent = '✓ Sent';
+      messageDiv.appendChild(statusDiv);
+    }
+    
+    return messageDiv;
+  }
+
+  function sendMessage() {
+    const message = messageInput.value.trim();
+    if (!message) return;
+    
+    // Apply profanity filter to the message before sending
+    const filteredMessage = filterProfanity(message);
+    
+    const msgObj = {
+      username,
+      message: filteredMessage, // Store the filtered message
+      timestamp: Date.now(),
+      userId,
+      type: 'text'
+    };
+    
+    db.ref('messages').push(msgObj);
+    messageInput.value = '';
+    autoResizeTextarea();
+    stopTyping();
+  }
+
+  async function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      alert('File size must be less than 10MB');
+      return;
+    }
+    
+    try {
+      const storageRef = storage.ref(`chat-files/${Date.now()}-${file.name}`);
+      const uploadTask = storageRef.put(file);
+      
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          // Progress indicator could go here
+        },
+        (error) => {
+          alert('File upload failed');
+        },
+        async () => {
+          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+          
+          // Filter the filename for profanity as well
+          const filteredFileName = filterProfanity(file.name);
+          
+          const msgObj = {
+            username,
+            timestamp: Date.now(),
+            userId,
+            type: 'file',
+            fileName: filteredFileName,
+            fileUrl: downloadURL,
+            fileType: file.type
+          };
+          db.ref('messages').push(msgObj);
+        }
+      );
+    } catch (error) {
+      alert('File upload failed');
+    }
+    
+    fileInput.value = '';
+  }
+
+  function handleTyping() {
+    if (!isTyping) {
+      isTyping = true;
+      db.ref(`typing/${userId}`).set({
+        username,
+        timestamp: Date.now()
+      });
+    }
+    
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(stopTyping, 2000);
+  }
+
+  function stopTyping() {
+    if (isTyping) {
+      isTyping = false;
+      db.ref(`typing/${userId}`).remove();
+    }
+  }
+
+  function loadMessageHistory() {
+    db.ref('messages').limitToLast(50).on('child_added', (snapshot) => {
+      const data = snapshot.val();
+      const isOwn = data.userId === userId;
+      const messageElement = createMessage(data, isOwn);
+      chatMessages.appendChild(messageElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      
+      // Update notification for new messages when chat is closed
+      if (!chatOpen && data.timestamp > lastMessageTime && !isOwn) {
+        unreadCount++;
+        updateNotificationBadge();
+      }
+      
+      lastMessageTime = Math.max(lastMessageTime, data.timestamp);
+    });
+  }
+
+  function setupPresenceSystem() {
+    // Set user online
+    function setUserOnline() {
+      if (!username) return;
+      
+      const userRef = db.ref(`presence/${userId}`);
+      userRef.set({
+        username,
+        timestamp: Date.now()
+      });
+      
+      // Remove user when they disconnect
+      userRef.onDisconnect().remove();
+    }
+    
+    // Monitor online users
+    db.ref('presence').on('value', (snapshot) => {
+      const users = snapshot.val() || {};
+      const count = Object.keys(users).length;
+      onlineCount.textContent = `👤 ${count}`;
+    });
+    
+    // Monitor typing users
+    db.ref('typing').on('value', (snapshot) => {
+      const typingUsers = snapshot.val() || {};
+      const otherTyping = Object.values(typingUsers).filter(user => 
+        user.username !== username && 
+        Date.now() - user.timestamp < 3000
+      );
+      
+      if (otherTyping.length > 0) {
+        const names = otherTyping.map(user => user.username).join(', ');
+        typingIndicator.textContent = `${names} ${otherTyping.length === 1 ? 'is' : 'are'} typing...`;
+        typingIndicator.style.display = 'block';
+      } else {
+        typingIndicator.style.display = 'none';
+      }
+    });
+    
+    setUserOnline();
+  }
+
+  function updateNotificationBadge() {
+    if (unreadCount > 0) {
+      notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+      notificationBadge.style.display = 'flex';
+    } else {
+      notificationBadge.style.display = 'none';
+    }
+  }
+
+  function clearChat() {
+    if (confirm('Are you sure you want to clear all messages? This cannot be undone.')) {
+      db.ref('messages').remove();
+      chatMessages.innerHTML = '';
+    }
+  }
+
+  function exportChat() {
+    db.ref('messages').once('value', (snapshot) => {
+      const messages = snapshot.val() || {};
+      const chatData = Object.values(messages).map(msg => ({
+        username: msg.username,
+        message: msg.message || '[File]',
+        timestamp: new Date(msg.timestamp).toLocaleString()
+      }));
+      
+      const dataStr = JSON.stringify(chatData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  // Clean up old messages (keep last 100)
+  function cleanupOldMessages() {
+    db.ref('messages').once('value', (snapshot) => {
+      const messages = snapshot.val();
+      if (!messages) return;
+      
+      const messageKeys = Object.keys(messages);
+      if (messageKeys.length > 100) {
+        const oldKeys = messageKeys.slice(0, messageKeys.length - 100);
+        oldKeys.forEach(key => {
+          db.ref(`messages/${key}`).remove();
+        });
+      }
+    });
+  }
+
+  // Clean up old presence and typing data
+  setInterval(() => {
+    const now = Date.now();
+    
+    // Clean old presence (5 minutes)
+    db.ref('presence').once('value', (snapshot) => {
+      const users = snapshot.val() || {};
+      Object.entries(users).forEach(([id, user]) => {
+        if (now - user.timestamp > 5 * 60 * 1000) {
+          db.ref(`presence/${id}`).remove();
+        }
+      });
+    });
+    
+    // Clean old typing indicators (10 seconds)
+    db.ref('typing').once('value', (snapshot) => {
+      const typing = snapshot.val() || {};
+      Object.entries(typing).forEach(([id, user]) => {
+        if (now - user.timestamp > 10000) {
+          db.ref(`typing/${id}`).remove();
+        }
+      });
+    });
+    
+    // Clean old messages periodically
+    if (Math.random() < 0.1) { // 10% chance every interval
+      cleanupOldMessages();
+    }
+  }, 30000); // Every 30 seconds
+
+  // Initialize the chat
+  init();
+
+  // Set user online status on page visibility change
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && username) {
+      setUserOnline();
+    }
+  });
+
+  // Handle page unload
+  window.addEventListener('beforeunload', () => {
+    stopTyping();
+    if (username) {
+      db.ref(`presence/${userId}`).remove();
+      db.ref(`usernames/${userId}`).remove(); // Clean up username reservation
+    }
+  });
+
+  // Clean up old username reservations periodically
+  setInterval(() => {
+    const now = Date.now();
+    db.ref('usernames').once('value', (snapshot) => {
+      const usernames = snapshot.val() || {};
+      Object.entries(usernames).forEach(([id, user]) => {
+        // Remove reservations older than 1 hour
+        if (now - user.timestamp > 60 * 60 * 1000) {
+          db.ref(`usernames/${id}`).remove();
+        }
+      });
+    });
+  }, 10 * 60 * 1000); // Every 10 minutes
+
+</script>
+
+</body>
+</html>
